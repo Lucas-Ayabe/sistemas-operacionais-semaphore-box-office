@@ -8,6 +8,7 @@ public class PersonBuyProccess extends Thread {
     private int id = 0;
     private static int totalTickets = 100;
     private Semaphore semaphore;
+    private boolean purchaseFailed = false;
 
     public PersonBuyProccess(int id, Semaphore semaphore) {
         this.semaphore = semaphore;
@@ -20,20 +21,33 @@ public class PersonBuyProccess extends Thread {
             var amountToBuy = (new RandomInt(1, 4)).generate();
             login();
             buy();
-            validatePurchase(amountToBuy);
+
+            if (!purchaseFailed) {
+                validatePurchase(amountToBuy);
+            }
         } catch (Exception exception) {
             exception.printStackTrace();
         }
     }
 
     private void login() throws InterruptedException {
-        var time = new RandomInt(50, 2000);
-        sleep(time.generate());
+        var time = (new RandomInt(50, 3000)).generate();
+        sleep(time);
+
+        if (time >= 3000) {
+            purchaseFailed = true;
+            printPurchaseCanceling("Timeout, tempo de login excedeu o limite");
+        }
     }
 
     private void buy() throws InterruptedException {
-        var time = new RandomInt(1000, 3000);
-        sleep(time.generate());
+        var time = (new RandomInt(1000, 5500)).generate();
+        sleep(time);
+
+        if (time >= 5500) {
+            purchaseFailed = true;
+            printPurchaseCanceling("Tempo de sessão excedido");
+        }
     }
 
     private void validatePurchase(int amount) {
@@ -41,19 +55,22 @@ public class PersonBuyProccess extends Thread {
             semaphore.acquire();
             if (amount <= totalTickets) {
                 totalTickets -= amount;
+                String amountComplement = amount == 1
+                    ? "ingresso"
+                    : "ingressos";
                 System.out.println(
                     this +
                     " comprou " +
                     amount +
-                    " ingressos, ingressos disponíveis: " +
+                    " " +
+                    amountComplement +
+                    ", ingressos disponíveis: " +
                     totalTickets +
                     "\n"
                 );
             } else {
-                System.out.println(
-                    "O número de tickets solicitados excede o número disponível, compra para " +
-                    this +
-                    " foi cancelada."
+                printPurchaseCanceling(
+                    "O número de tickets solicitados excede o número disponível"
                 );
             }
         } catch (Exception exception) {
@@ -61,6 +78,12 @@ public class PersonBuyProccess extends Thread {
         } finally {
             semaphore.release();
         }
+    }
+
+    private void printPurchaseCanceling(String message) {
+        System.out.println(
+            message + ". Compra para " + this + " foi cancelada."
+        );
     }
 
     @Override

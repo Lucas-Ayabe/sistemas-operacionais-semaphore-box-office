@@ -10,7 +10,7 @@ public class RandomInt {
 
     public RandomInt(int min, int max) {
         this.min = min;
-        this.max = max;
+        this.max = max + 1;
     }
 
     public int generate() {
